@@ -202,3 +202,124 @@ def gen_mask_hyp_for_uf(device, uf_type_vocab_file, mention_file_name, output_fi
         if reach_end:
             break
     fout.close()
+
+
+def pattern_mention_sample_for_span_mention(tokenizer: BertTokenizer, mention, pattern_str, max_seq_len):
+    pattern_token_seq = tokenizer.tokenize(pattern_str)
+    text = mention['text']
+    bp, ep = mention['span']
+
+    tokens = tokenizer.tokenize(text[:bp]) + pattern_token_seq + tokenizer.tokenize(text[bp:])
+    if len(tokens) > max_seq_len:
+        return None
+    token_id_seq = [tokenizer.cls_token_id] + tokenizer.convert_tokens_to_ids(tokens) + [tokenizer.sep_token_id]
+    # mask_idx = (token_ids_seq == tokenizer.mask_token_id).nonzero()[0][1]
+    mask_idx = token_id_seq.index(tokenizer.mask_token_id)
+    # print(mask_idx)
+    return mention['id'], token_id_seq, mask_idx
+
+
+def mention_pattern_sample_for_span_mention(tokenizer: BertTokenizer, mention, pattern_str, max_seq_len):
+    pattern_token_seq = tokenizer.tokenize(pattern_str)
+    text = mention['text']
+    bp, ep = mention['span']
+
+    tokens = tokenizer.tokenize(text[:ep]) + pattern_token_seq + tokenizer.tokenize(text[ep:])
+    if len(tokens) > max_seq_len:
+        return None
+    token_id_seq = [tokenizer.cls_token_id] + tokenizer.convert_tokens_to_ids(tokens) + [tokenizer.sep_token_id]
+    # mask_idx = (token_ids_seq == tokenizer.mask_token_id).nonzero()[0][1]
+    mask_idx = token_id_seq.index(tokenizer.mask_token_id)
+    # print(mask_idx)
+    return mention['id'], token_id_seq, mask_idx
+
+
+def gen_mask_hyp_for_pronouns(device, uf_type_vocab_file, mention_file_name, output_file, pattern='andother'):
+    bert_model_name = 'bert-base-cased'
+    print(mention_file_name)
+    max_seq_len = 128
+    batch_size = 16
+    pad_id = 0
+    k = 20
+    tokenizer = BertTokenizer.from_pretrained(bert_model_name)
+
+    type_vocab, type_id_dict = datautils.load_vocab_file(uf_type_vocab_file)
+
+    model = BertForMaskedLM.from_pretrained(bert_model_name, return_dict=True)
+    model.to(device)
+    model.eval()
+
+    inflect_engine = inflect.engine()
+    f = open(mention_file_name, encoding='utf-8')
+    fout = open(output_file, 'w', encoding='utf-8')
+    batch = list()
+    reach_end = False
+    line_cnt = 0
+    while True:
+        try:
+            line = next(f)
+            line_cnt += 1
+            if line_cnt % 1000 == 0:
+                print(line_cnt)
+            # if line_cnt > 10:
+            #     exit()
+            mention = json.loads(line)
+            sample = None
+            if pattern == 'suchas':
+                sample = pattern_mention_sample_for_span_mention(
+                    tokenizer, mention, '[MASK] such as', max_seq_len)
+            elif pattern == 'andanyother':
+                sample = mention_pattern_sample_for_span_mention(
+                    tokenizer, mention, 'and any other [MASK]', max_seq_len)
+            elif pattern == 'andsomeother':
+                sample = mention_pattern_sample_for_span_mention(
+                    tokenizer, mention, 'and some other [MASK]', max_seq_len)
+            if sample is not None:
+                # print(tokenizer.convert_ids_to_tokens(sample[1]))
+                batch.append(sample)
+        except StopIteration:
+            reach_end = True
+            f.close()
+
+        if len(batch) == batch_size or (reach_end and len(batch) > 0):
+            with torch.no_grad():
+                token_id_seqs_tenser, attn_mask = modelutils.pad_id_seqs([x[1] for x in batch], device, pad_id)
+                outputs = model(token_id_seqs_tenser, attn_mask)
+
+            # logits_batch = outputs.logits.data.cpu().numpy()
+
+            mask_idxs = [x[2] for x in batch]
+            cur_batch_size = len(batch)
+            logits_batch = outputs.logits[np.arange(cur_batch_size), mask_idxs, :]
+            logits_batch = torch.softmax(logits_batch, dim=-1).data.cpu().numpy()
+            for j, logits in enumerate(logits_batch):
+                mention_idx = batch[j][0]
+                idxs = np.argsort(-logits)
+
+                pred_types, top_logits = list(), list()
+                for rank, idx in enumerate(idxs):
+                    # print(w)
+                    w = tokenizer.ids_to_tokens[idx]
+                    singular_w = inflect_engine.singular_noun(w)
+                    if singular_w:
+                        w = singular_w
+
+                    type_id = type_id_dict.get(w, -1)
+                    if type_id < 0:
+                        continue
+                    if type_id not in pred_types:
+                        pred_types.append(type_id)
+                        top_logits.append(float(logits[idx]))
+                        if len(pred_types) >= k:
+                            break
+                if len(pred_types) > 0:
+                    # result_obj = {'id': mention_idx, 'types': pred_types}
+                    result_obj = {'id': mention_idx, 'tids': pred_types, 'logits': top_logits}
+                    fout.write('{}\n'.format(json.dumps(result_obj)))
+                    # write_mlm_label_result(fout, mention_idx, pred_types, top_logits)
+            batch = list()
+            # break
+
+        if reach_end:
+            break
+    fout.close()
