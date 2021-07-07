@@ -55,3 +55,21 @@ def parse_idx_device_args():
     parser.add_argument('idx', type=int, default=0, nargs='?')
     parser.add_argument('-d', type=int, default=[], nargs='+')
     return parser.parse_args()
+
+
+def are_words_cap(mstr: str):
+    words = mstr.split(' ')
+    for w in words:
+        if w.lower() in {'the', 'of', 'and', 'a', ','}:
+            continue
+        if len(w) > 0 and w[0].islower():
+            return False
+    return True
+
+
+def get_mention_type(mstr):
+    if mstr.lower() in pronouns:
+        return 1
+    if are_words_cap(mstr):
+        return 0
+    return 2
