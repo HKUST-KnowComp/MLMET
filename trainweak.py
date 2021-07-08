@@ -14,6 +14,36 @@ def __setup_logging(to_file):
     logging.info('logging to {}'.format(log_file))
 
 
+def __train1():
+    print('train 1')
+    __setup_logging(True)
+
+    el_train_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/total_train/el_train.json')
+    el_extra_label_file = os.path.join(config.DATA_DIR, 'ultrafine/bert_labels/el_train_ama_ms_10types.json')
+    open_train_files = [os.path.join(
+        config.DATA_DIR, 'ultrafine/uf_data/total_train/open_train_{:02d}.json'.format(i)) for i in range(21)]
+    open_extra_label_files = [os.path.join(
+        config.DATA_DIR,
+        'ultrafine/bert_labels/open_train_{:02d}_ama_ms_10types.json'.format(i)) for i in range(21)]
+    pronoun_mention_file = os.path.join(config.DATA_DIR, 'ultrafine/gigaword5_pronoun_s005.txt')
+    pronoun_type_file = os.path.join(
+        config.DATA_DIR, 'ultrafine/bert_labels/gigaword5_pronoun_s005_ama_ms_10types.json')
+
+    dev_data_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/crowd/dev.json')
+    type_vocab_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/ontology/types.txt')
+    load_model_file = None
+    save_model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_ama_ms')
+    # save_model_file = None
+    tc = bertufexp.TrainConfig(device, bert_model='bert-base-cased', batch_size=32, max_n_ex_types=10,
+                               eval_interval=1000, lr=1e-5, w_decay=0.01, n_steps=1502000, save_interval=100000,
+                               weighted_loss=True, weight_for_origin_label=5.0, ex_tids=True)
+    # bertufexp.train_bert_uf(tc, type_vocab_file, train_data_file, dev_data_file, save_model_file)
+    bertufexp.train_wuf(
+        tc, type_vocab_file, el_train_file, el_extra_label_file, open_train_files,
+        open_extra_label_files, pronoun_mention_file, pronoun_type_file, dev_data_file,
+        None, save_model_file)
+
+
 def __train():
     print('train 0')
     __setup_logging(True)
@@ -49,3 +79,5 @@ if __name__ == '__main__':
 
     if args.idx == 0:
         __train()
+    elif args.idx == 1:
+        __train1()

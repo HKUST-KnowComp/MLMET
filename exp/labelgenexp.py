@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from transformers import BertTokenizer, BertForMaskedLM
 import inflect
+from exp import expdatautils
 import models.utils as modelutils
 from utils import datautils, utils
 
@@ -322,4 +323,107 @@ def gen_mask_hyp_for_pronouns(device, uf_type_vocab_file, mention_file_name, out
 
         if reach_end:
             break
+    fout.close()
+
+
+def label_select_batch(device, type_vocab, model, batch, ex_labels_lists, pad_id, discard_no_match):
+    with torch.no_grad():
+        token_id_seqs_tenser, attn_mask = modelutils.pad_id_seqs([x[1] for x in batch], device, pad_id)
+        logits_batch = model(token_id_seqs_tenser, attn_mask)
+
+    logits_batch = logits_batch.data.cpu().numpy()
+    selected_labels_list = list()
+    for i, logits in enumerate(logits_batch):
+        idxs = np.squeeze(np.argwhere(logits > 0), axis=1)
+        if len(idxs) == 0:
+            idxs = [np.argmax(logits)]
+        # labels_pred = [type_vocab[idx] for idx in idxs]
+        labels_pred = [int(idx) for idx in idxs]
+        labels_to_match = list(set(labels_pred + batch[i][2]))
+        max_match_cnt = 0 if discard_no_match else -1
+        ex_labels_select = None
+        for ex_labels in ex_labels_lists[i]:
+            match_cnt = sum(1 if t in labels_to_match else 0 for t in ex_labels)
+            if match_cnt > max_match_cnt:
+                ex_labels_select = ex_labels
+                max_match_cnt = match_cnt
+        selected_labels_list.append(ex_labels_select)
+    return selected_labels_list
+
+
+def write_selected_labels(fout, batch, selected_labels_list):
+    for i, x in enumerate(batch):
+        if selected_labels_list[i] is None:
+            continue
+        r = {'id': x[0], 'tids': selected_labels_list[i]}
+        fout.write('{}\n'.format(json.dumps(r)))
+
+
+def select_with_model_uf(
+        device, type_vocab_file, data_file, is_my_mention, load_model_file, ex_labels_files,
+        discard_no_match, output_file, n_types_use):
+    from models import bertuf
+
+    bert_model = 'bert-base-cased'
+    max_seq_len = 128
+    batch_size = 16
+    type_vocab, type_id_dict = datautils.load_vocab_file(type_vocab_file)
+
+    n_types = len(type_vocab)
+    tokenizer = BertTokenizer.from_pretrained(bert_model)
+    pad_id = tokenizer.pad_token_id
+
+    model = bertuf.BertUF.from_trained(load_model_file)
+    model.to(device)
+    model.eval()
+
+    print(data_file)
+    print(output_file)
+    ex_label_readers = [expdatautils.LabelReader(filename) for filename in ex_labels_files]
+    fout = open(output_file, 'w', encoding='utf-8')
+    f = open(data_file, encoding='utf-8')
+    batch, ex_labels_lists = list(), list()
+    for i, line in enumerate(f):
+        if i % 10000 == 0:
+            print(i)
+        m = json.loads(line)
+        ex_labels_list = list()
+        mention_id = m['id'] if is_my_mention else i
+        for reader in ex_label_readers:
+            lobj = reader.labels_for(mention_id)
+            if lobj is not None:
+                tids = lobj['tids'][:n_types_use]
+                # ex_labels_list.append([type_vocab[tid] for tid in tids])
+                ex_labels_list.append(tids)
+
+        if len(ex_labels_list) > 0:
+            if is_my_mention:
+                tok_id_seq = expdatautils.bert_sm_seq_from_my_mention(tokenizer, m, max_seq_len)
+            else:
+                tok_id_seq = expdatautils.uf_mention_to_sm_bert_sample(
+                    tokenizer, m, max_seq_len, discard_too_long=False)
+            # print(tokenizer.convert_ids_to_tokens(tok_id_seq))
+            # exit()
+            if tok_id_seq is not None:
+                # print(tokenizer.convert_ids_to_tokens(sample[1]))
+                if is_my_mention:
+                    original_labels = list()
+                else:
+                    original_labels = [type_id_dict.get(t, -1) for t in m['y_str']]
+                    original_labels = [tid for tid in original_labels if tid > -1]
+                batch.append((mention_id, tok_id_seq, original_labels))
+                ex_labels_lists.append(ex_labels_list)
+
+        if len(batch) >= batch_size:
+            selected_labels_list = label_select_batch(
+                device, type_vocab, model, batch, ex_labels_lists, pad_id, discard_no_match)
+            write_selected_labels(fout, batch, selected_labels_list)
+            batch, ex_labels_lists = list(), list()
+            # break
+    f.close()
+
+    if len(batch) > 0:
+        selected_labels_list = label_select_batch(
+            device, type_vocab, model, batch, ex_labels_lists, pad_id, discard_no_match)
+        write_selected_labels(fout, batch, selected_labels_list)
     fout.close()

@@ -4,6 +4,93 @@ import logging
 from utils import utils
 
 
+class UfMentionLabelLoader:
+    def __init__(self, mention_file, extra_label_file, yield_id=False):
+        self.mention_file = mention_file
+        self.extra_label_file = extra_label_file
+        self.yield_id = yield_id
+
+    def __iter__(self):
+        return self.mention_label_gen()
+
+    def mention_label_gen(self):
+        fm = open(self.mention_file, encoding='utf-8')
+        fl = open(self.extra_label_file, encoding='utf-8') if self.extra_label_file is not None else None
+        cur_label_obj = None
+        for i, line_m in enumerate(fm):
+            mention = json.loads(line_m)
+            if self.extra_label_file is None:
+                if self.yield_id:
+                    yield i, mention, None
+                else:
+                    yield mention, None
+            else:
+                if (cur_label_obj is None or cur_label_obj['id'] < i) and fl is not None:
+                    try:
+                        line_l = next(fl)
+                        cur_label_obj = json.loads(line_l)
+                    except StopIteration:
+                        fl.close()
+                        fl = None
+                r_label_obj = None
+                if cur_label_obj['id'] == i:
+                    r_label_obj = cur_label_obj
+                else:
+                    assert cur_label_obj['id'] > i
+                if self.yield_id:
+                    yield i, mention, r_label_obj
+                else:
+                    yield mention, r_label_obj
+        fm.close()
+        if fl is not None:
+            fl.close()
+
+
+class SimpleUFBertBatchLoader:
+    def __init__(self, tokenizer, mention_files, label_files, max_seq_len, batch_size, yield_id=False, loop=True):
+        self.tokenizer = tokenizer
+        self.mention_files = mention_files
+        self.label_files = label_files
+        self.file_idx = 0
+        self.max_seq_len = max_seq_len
+        self.batch_size = batch_size
+        self.yield_id = yield_id
+        self.loop = loop
+
+    def __iter__(self):
+        return self.next_batch()
+
+    def next_batch(self):
+        ml_loader = iter(UfMentionLabelLoader(
+            self.mention_files[self.file_idx], self.label_files[self.file_idx], yield_id=self.yield_id))
+
+        batch = list()
+        while True:
+            try:
+                mid = None
+                if self.yield_id:
+                    mid, mention, lobj = next(ml_loader)
+                else:
+                    mention, lobj = next(ml_loader)
+                # print(lobj)
+                # exit()
+                tok_id_seq = uf_mention_to_sm_bert_sample(self.tokenizer, mention, self.max_seq_len)
+                if tok_id_seq is not None:
+                    if self.yield_id:
+                        sample = mid, tok_id_seq, mention['y_str'], mention, lobj
+                    else:
+                        sample = tok_id_seq, mention['y_str'], lobj
+                    batch.append(sample)
+                    if len(batch) >= self.batch_size:
+                        yield batch
+                        batch = list()
+            except StopIteration:
+                self.file_idx = (self.file_idx + 1) % len(self.mention_files)
+                if self.file_idx == 0 and not self.loop:
+                    break
+                ml_loader = iter(UfMentionLabelLoader(self.mention_files[self.file_idx], None, yield_id=self.yield_id))
+
+
 class SampleBatchLoader:
     def __init__(self, samples, batch_size, n_iter, shuffle=False, n_steps=-1):
         self.samples = samples
