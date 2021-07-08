@@ -3,7 +3,7 @@ Ultra-Fine Entity Typing with Weak Supervision from a Masked Language Model
 
 Requires transformers, inflect.
 
-Note that I am still testing if this organized version code contains bugs
+**Note that I am still testing if this organized version code contains bugs.**
 
 1. Set DATA_DIR in config.py to your data directory
 
