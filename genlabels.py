@@ -20,8 +20,8 @@ def __labels_for_named():
 
 def __labels_for_nominal():
     patterns = ['andanyother', 'suchas', 'andsomeother']
-    # for i in range(21):
-    for i in range(0, 5):
+    for i in range(21):
+    # for i in range(15, 21):
         output_file_prefix = os.path.join(
                 config.DATA_DIR, 'ultrafine/bert_labels/open_train_{:02d}_20types'.format(i))
         for pattern in patterns:
@@ -51,7 +51,7 @@ def __select_with_model_named():
     n_types_use = 10
     output_file = os.path.join(config.DATA_DIR, 'ultrafine/bert_labels/el_train_ama_ms_10types.json')
     data_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/total_train/el_train.json')
-    model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_pre_ft.pth')
+    model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_pre_ft.pth')
     aao_labels_file = os.path.join(config.DATA_DIR, 'ultrafine/bert_labels/el_train_20types_andanyother.json')
     aso_labels_file = os.path.join(config.DATA_DIR, 'ultrafine/bert_labels/el_train_20types_andsomeother.json')
     msa_labels_file = os.path.join(config.DATA_DIR, 'ultrafine/bert_labels/el_train_20types_suchas.json')
@@ -70,7 +70,7 @@ def __select_with_model_nominal():
         output_file = os.path.join(
             config.DATA_DIR, 'ultrafine/bert_labels/open_train_{:02d}_ama_ms_10types.json'.format(idx))
         data_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/total_train/open_train_{:02d}.json'.format(idx))
-        model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_pre_ft.pth')
+        model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_pre_ft.pth')
         aao_labels_file = os.path.join(
             config.DATA_DIR, 'ultrafine/bert_labels/open_train_{:02d}_20types_andanyother.json'.format(idx))
         aso_labels_file = os.path.join(
@@ -90,7 +90,7 @@ def __select_with_model_pronoun():
     output_file = os.path.join(
         config.DATA_DIR, 'ultrafine/bert_labels/gigaword5_pronoun_s005_ama_ms_10types.json')
     data_file = os.path.join(config.DATA_DIR, 'ultrafine/gigaword_eng_5_texts_pronoun_s005.txt')
-    model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_pre_ft.pth')
+    model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_pre_ft.pth')
     aao_labels_file = os.path.join(
         config.DATA_DIR, 'ultrafine/bert_labels/gigaword5_pronoun_s005_20types_andanyother.json')
     aso_labels_file = os.path.join(
@@ -107,10 +107,10 @@ args = utils.parse_idx_device_args()
 cuda_device_str = 'cuda' if len(args.d) == 0 else 'cuda:{}'.format(args.d[0])
 device = torch.device(cuda_device_str) if torch.cuda.device_count() > 0 else torch.device('cpu')
 
-# __labels_for_named()
+__labels_for_named()
 __labels_for_nominal()
-# __labels_for_pronouns()
+__labels_for_pronouns()
 
-# __select_with_model_named()
-# __select_with_model_nominal()
-# __select_with_model_pronoun()
+__select_with_model_named()
+__select_with_model_nominal()
+__select_with_model_pronoun()
