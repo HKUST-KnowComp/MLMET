@@ -399,8 +399,8 @@ def train_st(tc: TrainConfig, type_vocab_file, el_data_file, el_extra_label_file
             losses = list()
 
             model.eval()
-            p, r, f1, _, results = exputils.eval_uf(tc.device, model, type_vocab, dev_batch_iter)
-            pt, rt, f1t, _, results = exputils.eval_uf(tc.device, model, type_vocab, test_batch_iter)
+            p, r, f1, results = exputils.eval_uf(tc.device, model, type_vocab, dev_batch_iter)
+            pt, rt, f1t, results = exputils.eval_uf(tc.device, model, type_vocab, test_batch_iter)
             # print(step, loss_val, p, r, f1)
             best_tag = '*' if f1 > best_dev_f1 else ''
             logging.info(
