@@ -25,7 +25,7 @@ def __train():
     open_extra_label_files = [os.path.join(
         config.DATA_DIR,
         'ultrafine/bert_labels/open_train_{:02d}_20types_andanyother.json'.format(i)) for i in range(21)]
-    pronoun_mention_file = os.path.join(config.DATA_DIR, 'ultrafine/gigaword5_pronoun_s005.txt')
+    pronoun_mention_file = os.path.join(config.DATA_DIR, 'ultrafine/gigaword_eng_5_texts_pronoun_s005.txt')
     pronoun_type_file = os.path.join(
         config.DATA_DIR, 'ultrafine/bert_labels/gigaword5_pronoun_s005_20types_andanyother.json')
 
@@ -34,9 +34,12 @@ def __train():
     dev_data_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/crowd/dev.json')
     test_data_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/crowd/test.json')
     type_vocab_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/ontology/types.txt')
-    teacher_model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_ama_ms_ft.pth')
+    # teacher_model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_ama_ms_ft.pth')
+    # load_model_file = os.path.join(
+    #     config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_ama_ms-[best_on_dev_after_finetune].pth')
+    teacher_model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_ama_ms_ft_90w.pth')
     load_model_file = os.path.join(
-        config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_ama_ms_[best_on_dev_after_finetune].pth')
+        config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_ama_ms-900000.pth')
     # load_model_file = None
     save_model_file = None
     tc = ufstexp.TrainConfig(device_ids, bert_model='bert-base-cased', batch_size=96, max_n_ex_types=10,

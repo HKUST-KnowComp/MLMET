@@ -25,7 +25,7 @@ def __train1():
     open_extra_label_files = [os.path.join(
         config.DATA_DIR,
         'ultrafine/bert_labels/open_train_{:02d}_ama_ms_10types.json'.format(i)) for i in range(21)]
-    pronoun_mention_file = os.path.join(config.DATA_DIR, 'ultrafine/gigaword5_pronoun_s005.txt')
+    pronoun_mention_file = os.path.join(config.DATA_DIR, 'ultrafine/gigaword_eng_5_texts_pronoun_s005.txt')
     pronoun_type_file = os.path.join(
         config.DATA_DIR, 'ultrafine/bert_labels/gigaword5_pronoun_s005_ama_ms_10types.json')
 

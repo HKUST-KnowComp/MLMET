@@ -22,9 +22,12 @@ def __train1():
     dev_data_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/crowd/dev.json')
     test_data_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/crowd/test.json')
     type_vocab_file = os.path.join(config.DATA_DIR, 'ultrafine/uf_data/ontology/types.txt')
+    # load_model_file = os.path.join(
+    #     config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_ama_ms-[best_on_dev_after_finetune].pth')
+    # save_model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_ama_ms_ft.pth')
     load_model_file = os.path.join(
-        config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_ama_ms_[best_on_dev_after_finetune].pth')
-    save_model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_ama_ms_ft.pth')
+        config.DATA_DIR, 'ultrafine/output/models/uf_bert_weak_ama_ms-900000.pth')
+    save_model_file = os.path.join(config.DATA_DIR, 'ultrafine/output/models/uf_bert_ama_ms_ft_90w.pth')
     tc = bertufexp.TrainConfig(device, bert_model='bert-base-cased', batch_size=48, eval_interval=500,
                                lr=2e-5, w_decay=0.01, n_iter=1000, lr_schedule=True)
     bertufexp.train_bert_uf(tc, type_vocab_file, train_data_file, dev_data_file, test_data_file,
