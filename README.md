@@ -30,6 +30,9 @@ DATA_DIR/ultrafine/output/models, DATA_DIR/ultrafine/log, DATA_DIR/ultrafine/ber
 ```python genlabels.py```
    to generate labels with BERT MLM. This can take a long time. You may want to adjust the code to do it in parallel. 
    
+   Pre-generated labels for non-pronoun mention examples:
+https://drive.google.com/file/d/1FeaPyIovdkkumVZteeNWyWYErCd6kbB1/view?usp=sharing
+
 9. Run
 ```python trainweak.py 1```
    to pretrain a model with newly generated weak labels.
