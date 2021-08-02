@@ -33,7 +33,7 @@ DATA_DIR/ultrafine/output/models, DATA_DIR/ultrafine/log, DATA_DIR/ultrafine/ber
    Pre-generated labels for non-pronoun mention examples:
 https://drive.google.com/file/d/1FeaPyIovdkkumVZteeNWyWYErCd6kbB1/view?usp=sharing
    
-   Pre-generated labels for pronoun mention examples is in data/gigaword5_pronoun_s005_ama_ms_10types.zip . Before using it, run ```python verifypronoun.py``` to verify if your pronoun mentions match these labels.
+   Pre-generated labels for pronoun mention examples are in data/gigaword5_pronoun_s005_ama_ms_10types.zip . Before using it, run ```python verifypronoun.py``` to verify if your pronoun mentions match these labels.
    If ```python verifypronoun.py``` prints ```Verification FAILED!```, try running ```python genpronfixed.py``` to generate pronoun mention examples.
 
 9. Run
