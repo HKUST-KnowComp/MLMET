@@ -145,6 +145,7 @@ gigaword_data_file = os.path.join(config.DATA_DIR, 'gigaword_eng_5/gigaword_eng_
 gigaword_text_file = os.path.join(config.DATA_DIR, 'gigaword_eng_5/gigaword_eng_5_texts.txt')
 pronoun_file = os.path.join(config.DATA_DIR, 'ultrafine/gigaword_eng_5_texts_pronoun_s005.txt')
 
-process_gigaword()
-gen_gigaword_texts_file()
-gen_pronoun_mentions()
+if __name__ == '__main__':
+    process_gigaword()
+    gen_gigaword_texts_file()
+    gen_pronoun_mentions()
